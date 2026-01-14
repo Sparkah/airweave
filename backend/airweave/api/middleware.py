@@ -237,15 +237,6 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
         self.default_origins = default_origins
 
     async def dispatch(self, request: Request, call_next):
-        """Process the request and add dynamic CORS headers.
-
-        Args:
-            request: The incoming request
-            call_next: The next middleware function to call
-
-        Returns:
-            The response with appropriate CORS headers
-        """
         # Get origin from request headers
         origin = request.headers.get("origin")
         path = request.url.path
@@ -254,40 +245,22 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
         if not origin:
             return await call_next(request)
 
-        # Handle OPTIONS preflight requests - only if allowed
+        # --- FORCE OVERRIDE FOR ONEMIND CLOUD DEPLOYMENT ---
         if request.method == "OPTIONS":
-            # Check if origin is allowed
-            is_allowed_origin = origin in self.default_origins
-
-            if is_allowed_origin:
-                # Create a response with appropriate CORS headers
-                response = Response()
-                response.headers["Access-Control-Allow-Origin"] = origin
-                response.headers["Access-Control-Allow-Methods"] = (
-                    "GET,POST,PUT,DELETE,OPTIONS,PATCH"
-                )
-                response.headers["Access-Control-Allow-Headers"] = "*"
-                response.headers["Access-Control-Allow-Credentials"] = "true"
-                logger.debug(f"Handled OPTIONS preflight for {path} from origin {origin}")
-                return response
-            else:
-                # Not allowed, return 403
-                logger.debug(
-                    f"Rejected OPTIONS preflight for {path} from disallowed origin {origin}"
-                )
-                return Response(status_code=403)
+            response = Response()
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            return response
 
         # For non-OPTIONS requests, process the request
         response = await call_next(request)
 
-        # Add CORS headers to the response for allowed origins
-        is_allowed_origin = origin in self.default_origins
-
-        if is_allowed_origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            logger.debug(f"Added CORS headers for origin {origin}")
-
+        # Always add CORS headers for any requesting origin
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        
         return response
 
 
