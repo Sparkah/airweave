@@ -277,6 +277,20 @@ class GoogleSlidesConfig(SourceConfig):
     )
 
 
+class FathomConfig(SourceConfig):
+    """Fathom configuration schema for AI meeting recordings."""
+
+    created_after: Optional[str] = Field(
+        default=None,
+        title="Created After",
+        description=(
+            "Only sync meetings created after this date. "
+            "Format: YYYY-MM-DD (e.g., 2024-01-01). "
+            "If not set, all available meetings will be synced."
+        ),
+    )
+
+
 class HubspotConfig(SourceConfig):
     """Hubspot configuration schema."""
 

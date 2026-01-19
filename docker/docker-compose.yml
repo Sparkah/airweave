@@ -79,12 +79,15 @@ services:
       - frontend
     ports:
       - "8080:8080"
+    volumes:
+      - ./serve.json:/app/serve.json:ro
     environment:
       # Use the Public IP without a trailing slash for the script's validation
-      - API_URL=http://132.145.34.88:8001
+      - API_URL=https://api.airweave.apiegames.com #http://132.145.34.88:8001
       - ENABLE_AUTH=false
       # Use a simplified CSP that definitely includes your API
-      - "CONTENT_SECURITY_POLICY=default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://132.145.34.88:8001; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+      # - "CONTENT_SECURITY_POLICY=default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://132.145.34.88:8001; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+      - "CONTENT_SECURITY_POLICY=default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://api.airweave.apiegames.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
     depends_on:
       - backend
     restart: on-failure
