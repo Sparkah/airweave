@@ -428,11 +428,11 @@ integrations:
 
   fathom:
     oauth_type: "with_refresh"
-    url: "https://fathom.video/oauth/authorize"
+    url: "https://fathom.video/external/v1/oauth2/authorize"
     backend_url: "https://fathom.video/external/v1/oauth2/token"
     grant_type: "authorization_code"
-    client_id: "placeholder_client_id"
-    client_secret: "placeholder_client_secret"
+    client_id: "QoxwvhkAgNAwTkEbExrYr1IS-Nxnb0XMN7eX_oG-HIs"
+    client_secret: "T9v2EQiYzD3VAAzQDapYHy50tg2M1lxu4v0xJAoga6k"
     content_type: "application/x-www-form-urlencoded"
     client_credential_location: "body"
     scope: "public_api"
