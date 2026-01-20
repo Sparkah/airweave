@@ -64,7 +64,7 @@ class FathomSource(BaseSource):
     Microsoft Teams that were recorded with Fathom.
     """
 
-    BASE_URL = "https://fathom.video/external/v1"
+    BASE_URL = "https://api.fathom.ai/external/v1"
 
     @classmethod
     async def create(
