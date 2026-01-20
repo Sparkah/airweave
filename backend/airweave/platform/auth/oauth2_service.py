@@ -549,8 +549,8 @@ class OAuth2Service:
         oauth_type = getattr(integration_config, "oauth_type", None)
         integration_short_name = getattr(integration_config, "integration_short_name", None)
 
-        # Skip scope for: rotating_refresh types, or Salesforce
-        if oauth_type == "with_rotating_refresh" or integration_short_name == "salesforce":
+        # Skip scope for: rotating_refresh types, Salesforce, or Fathom
+        if oauth_type == "with_rotating_refresh" or integration_short_name in ("salesforce", "fathom"):
             logger.debug(
                 f"Skipping scope in token refresh "
                 f"(oauth_type={oauth_type}, integration={integration_short_name})"
