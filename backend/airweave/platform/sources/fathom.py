@@ -47,7 +47,7 @@ from airweave.schemas.source_connection import AuthenticationMethod, OAuthType
         AuthenticationMethod.OAUTH_TOKEN,
         AuthenticationMethod.AUTH_PROVIDER,
     ],
-    oauth_type=OAuthType.WITH_REFRESH,
+    oauth_type=OAuthType.WITH_ROTATING_REFRESH,
     requires_byoc=True,
     auth_config_class=None,
     config_class="FathomConfig",

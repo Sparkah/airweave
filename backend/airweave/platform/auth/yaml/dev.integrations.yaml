@@ -427,7 +427,7 @@ integrations:
   qdrant:
 
   fathom:
-    oauth_type: "with_refresh"
+    oauth_type: "with_rotating_refresh"
     url: "https://fathom.video/external/v1/oauth2/authorize"
     backend_url: "https://fathom.video/external/v1/oauth2/token"
     grant_type: "authorization_code"
