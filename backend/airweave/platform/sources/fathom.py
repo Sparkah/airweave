@@ -156,15 +156,50 @@ class FathomSource(BaseSource):
 
         return "\n\n".join(lines)
 
+    async def _fetch_transcript(
+        self, client: httpx.AsyncClient, recording_id: str
+    ) -> Optional[Dict]:
+        """Fetch transcript for a specific recording.
+
+        OAuth apps cannot use include_transcript parameter on /meetings endpoint,
+        so we must fetch transcripts separately via /recordings/{id}/transcript.
+        """
+        url = f"{self.BASE_URL}/recordings/{recording_id}/transcript"
+        try:
+            return await self._get_with_auth(client, url)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                self.logger.debug(f"No transcript found for recording {recording_id}")
+                return None
+            raise
+
+    async def _fetch_summary(
+        self, client: httpx.AsyncClient, recording_id: str
+    ) -> Optional[Dict]:
+        """Fetch summary for a specific recording.
+
+        OAuth apps cannot use include_summary parameter on /meetings endpoint,
+        so we must fetch summaries separately via /recordings/{id}/summary.
+        """
+        url = f"{self.BASE_URL}/recordings/{recording_id}/summary"
+        try:
+            return await self._get_with_auth(client, url)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                self.logger.debug(f"No summary found for recording {recording_id}")
+                return None
+            raise
+
     async def _fetch_meetings(
         self, client: httpx.AsyncClient
     ) -> AsyncGenerator[Dict, None]:
-        """Fetch all meetings with pagination."""
+        """Fetch all meetings with pagination.
+
+        Note: OAuth apps cannot use include_transcript or include_summary parameters.
+        Transcripts and summaries must be fetched separately per recording.
+        """
         url = f"{self.BASE_URL}/meetings"
-        params = {
-            "include_transcript": "true",
-            "include_summary": "true",
-        }
+        params: Dict[str, str] = {}
 
         # Add date filter if configured
         if self.config.get("created_after"):
@@ -179,7 +214,7 @@ class FathomSource(BaseSource):
                 params["next_cursor"] = cursor
 
             self.logger.info(f"Fetching Fathom meetings page #{page}")
-            data = await self._get_with_auth(client, url, params=params)
+            data = await self._get_with_auth(client, url, params=params if params else None)
 
             meetings = data.get("meetings", []) or data.get("data", []) or []
             self.logger.info(f"Page #{page} returned {len(meetings)} meetings")
@@ -195,7 +230,11 @@ class FathomSource(BaseSource):
     async def _generate_meeting_entities(
         self, client: httpx.AsyncClient
     ) -> AsyncGenerator[BaseEntity, None]:
-        """Generate all meeting-related entities."""
+        """Generate all meeting-related entities.
+
+        OAuth apps cannot use include_transcript or include_summary parameters,
+        so we fetch transcripts and summaries separately for each meeting.
+        """
         async for meeting in self._fetch_meetings(client):
             meeting_id = meeting.get("id") or meeting.get("recording_id")
             if not meeting_id:
@@ -244,36 +283,54 @@ class FathomSource(BaseSource):
                 entity_type=MeetingEntity.__name__,
             )
 
-            # 2. Yield MeetingTranscriptEntity if transcript is available
-            transcript_data = meeting.get("transcript") or meeting.get("transcript_segments")
-            if transcript_data:
+            # 2. Fetch and yield MeetingTranscriptEntity
+            # OAuth apps must fetch transcripts separately via /recordings/{id}/transcript
+            self.logger.debug(f"Fetching transcript for meeting {meeting_id}")
+            transcript_response = await self._fetch_transcript(client, str(meeting_id))
+
+            if transcript_response:
+                # Handle different response formats from the transcript endpoint
+                transcript_data = transcript_response.get(
+                    "transcript"
+                ) or transcript_response.get("segments", transcript_response)
+
                 if isinstance(transcript_data, str):
                     full_text = transcript_data
                     segments = []
-                else:
+                elif isinstance(transcript_data, list):
                     full_text = self._format_transcript(transcript_data)
                     segments = transcript_data
+                else:
+                    full_text = str(transcript_data) if transcript_data else ""
+                    segments = []
 
-                word_count = len(full_text.split()) if full_text else None
+                if full_text:
+                    word_count = len(full_text.split())
 
-                transcript_entity = MeetingTranscriptEntity(
-                    breadcrumbs=[meeting_breadcrumb],
-                    transcript_id=f"{meeting_id}_transcript",
-                    meeting_id=str(meeting_id),
-                    title=f"Transcript: {title}",
-                    full_text=full_text,
-                    word_count=word_count,
-                    language=meeting.get("language", "en"),
-                    segments=segments if isinstance(segments, list) else [],
-                    created_at_field=start_time,
-                    provider="fathom",
-                    recording_url=recording_url,
-                )
-                yield transcript_entity
+                    transcript_entity = MeetingTranscriptEntity(
+                        breadcrumbs=[meeting_breadcrumb],
+                        transcript_id=f"{meeting_id}_transcript",
+                        meeting_id=str(meeting_id),
+                        title=f"Transcript: {title}",
+                        full_text=full_text,
+                        word_count=word_count,
+                        language=transcript_response.get("language", "en"),
+                        segments=segments,
+                        created_at_field=start_time,
+                        provider="fathom",
+                        recording_url=recording_url,
+                    )
+                    yield transcript_entity
 
-            # 3. Yield MeetingSummaryEntity if summary is available
-            summary_data = meeting.get("summary")
-            if summary_data:
+            # 3. Fetch and yield MeetingSummaryEntity
+            # OAuth apps must fetch summaries separately via /recordings/{id}/summary
+            self.logger.debug(f"Fetching summary for meeting {meeting_id}")
+            summary_response = await self._fetch_summary(client, str(meeting_id))
+
+            if summary_response:
+                # Handle different response formats from the summary endpoint
+                summary_data = summary_response.get("summary", summary_response)
+
                 if isinstance(summary_data, str):
                     summary_text = summary_data
                     key_points = []
@@ -285,29 +342,35 @@ class FathomSource(BaseSource):
                     )
                     decisions = summary_data.get("decisions", [])
                 else:
-                    summary_text = str(summary_data)
+                    summary_text = str(summary_data) if summary_data else ""
                     key_points = []
                     decisions = []
 
-                action_items = self._extract_action_items(meeting)
-                topics = meeting.get("topics", []) or []
+                if summary_text:
+                    # Action items may be in summary response or meeting data
+                    action_items = self._extract_action_items(
+                        summary_response if isinstance(summary_response, dict) else {}
+                    ) or self._extract_action_items(meeting)
+                    topics = summary_response.get("topics", []) or meeting.get("topics", []) or []
 
-                summary_entity = MeetingSummaryEntity(
-                    breadcrumbs=[meeting_breadcrumb],
-                    summary_id=f"{meeting_id}_summary",
-                    meeting_id=str(meeting_id),
-                    title=f"Summary: {title}",
-                    summary=summary_text,
-                    key_points=key_points,
-                    decisions=decisions,
-                    action_items=action_items,
-                    topics=topics,
-                    sentiment=meeting.get("sentiment"),
-                    created_at_field=start_time,
-                    provider="fathom",
-                    recording_url=recording_url,
-                )
-                yield summary_entity
+                    summary_entity = MeetingSummaryEntity(
+                        breadcrumbs=[meeting_breadcrumb],
+                        summary_id=f"{meeting_id}_summary",
+                        meeting_id=str(meeting_id),
+                        title=f"Summary: {title}",
+                        summary=summary_text,
+                        key_points=key_points,
+                        decisions=decisions,
+                        action_items=action_items,
+                        topics=topics,
+                        sentiment=summary_response.get("sentiment")
+                        if isinstance(summary_response, dict)
+                        else None,
+                        created_at_field=start_time,
+                        provider="fathom",
+                        recording_url=recording_url,
+                    )
+                    yield summary_entity
 
     async def generate_entities(self) -> AsyncGenerator[BaseEntity, None]:
         """Generate all Fathom entities.
