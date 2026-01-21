@@ -297,6 +297,13 @@ class FathomSource(BaseSource):
             if not recording_url and meeting_id:
                 recording_url = f"https://fathom.video/recordings/{meeting_id}"
 
+            # Extract organizer - can be a string or a dict with 'name' field
+            organizer_data = meeting.get("organizer") or meeting.get("recorded_by")
+            if isinstance(organizer_data, dict):
+                organizer = organizer_data.get("name") or organizer_data.get("email")
+            else:
+                organizer = organizer_data
+
             # 1. Yield MeetingEntity
             meeting_entity = MeetingEntity(
                 breadcrumbs=[],
@@ -305,7 +312,7 @@ class FathomSource(BaseSource):
                 start_time=start_time,
                 end_time=end_time,
                 duration_seconds=duration,
-                organizer=meeting.get("organizer") or meeting.get("recorded_by"),
+                organizer=organizer,
                 speakers=speakers,
                 participant_count=len(speakers) if speakers else None,
                 attendees=attendees,
