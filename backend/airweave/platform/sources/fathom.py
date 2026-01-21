@@ -228,6 +228,8 @@ class FathomSource(BaseSource):
 
         cursor = None
         page = 0
+        consecutive_empty_pages = 0
+        max_empty_pages = 3  # Stop after 3 consecutive empty pages
 
         while True:
             page += 1
@@ -237,15 +239,34 @@ class FathomSource(BaseSource):
             self.logger.info(f"Fetching Fathom meetings page #{page}")
             data = await self._get_with_auth(client, url, params=params if params else None)
 
+            # Log raw response for first page to debug response format
+            if page == 1:
+                self.logger.info(f"First page API response keys: {list(data.keys())}")
+                # Log a sample of the response (truncated for safety)
+                sample = str(data)[:500]
+                self.logger.info(f"First page response sample: {sample}")
+
             meetings = data.get("meetings", []) or data.get("data", []) or []
             self.logger.info(f"Page #{page} returned {len(meetings)} meetings")
 
-            for meeting in meetings:
-                yield meeting
+            if not meetings:
+                consecutive_empty_pages += 1
+                self.logger.warning(
+                    f"Empty page received ({consecutive_empty_pages}/{max_empty_pages} consecutive)"
+                )
+                if consecutive_empty_pages >= max_empty_pages:
+                    self.logger.info(
+                        f"Stopping pagination after {max_empty_pages} consecutive empty pages"
+                    )
+                    break
+            else:
+                consecutive_empty_pages = 0  # Reset counter when we get results
+                for meeting in meetings:
+                    yield meeting
 
             cursor = data.get("next_cursor")
             if not cursor:
-                self.logger.info("No more meeting pages")
+                self.logger.info("No more meeting pages (no next_cursor)")
                 break
 
     async def _generate_meeting_entities(
