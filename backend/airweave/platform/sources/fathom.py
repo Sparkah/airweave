@@ -246,7 +246,7 @@ class FathomSource(BaseSource):
                 sample = str(data)[:500]
                 self.logger.info(f"First page response sample: {sample}")
 
-            meetings = data.get("meetings", []) or data.get("data", []) or []
+            meetings = data.get("items", []) or data.get("meetings", []) or data.get("data", []) or []
             self.logger.info(f"Page #{page} returned {len(meetings)} meetings")
 
             if not meetings:
