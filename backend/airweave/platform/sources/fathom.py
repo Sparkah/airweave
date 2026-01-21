@@ -40,6 +40,8 @@ from airweave.platform.sources.retry_helpers import (
 )
 from airweave.schemas.source_connection import AuthenticationMethod, OAuthType
 
+_logger = logging.getLogger(__name__)
+
 
 @source(
     name="Fathom",
@@ -58,9 +60,6 @@ from airweave.schemas.source_connection import AuthenticationMethod, OAuthType
     supports_temporal_relevance=True,
     rate_limit_level=RateLimitLevel.CONNECTION,
 )
-_logger = logging.getLogger(__name__)
-
-
 class FathomSource(BaseSource):
     """Fathom source connector for AI meeting recordings and transcripts.
 
