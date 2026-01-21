@@ -15,11 +15,13 @@ Entities yielded:
     - MeetingSummaryEntity: AI-generated summary with action items
 """
 
+import asyncio
 from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import httpx
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, stop_after_attempt, before_sleep_log
+import logging
 
 from airweave.core.shared_models import RateLimitLevel
 from airweave.platform.decorators import source
@@ -56,15 +58,26 @@ from airweave.schemas.source_connection import AuthenticationMethod, OAuthType
     supports_temporal_relevance=True,
     rate_limit_level=RateLimitLevel.CONNECTION,
 )
+_logger = logging.getLogger(__name__)
+
+
 class FathomSource(BaseSource):
     """Fathom source connector for AI meeting recordings and transcripts.
 
     Integrates with Fathom.video to retrieve meeting recordings, transcripts,
     and AI-generated summaries. Supports meetings from Zoom, Google Meet, and
     Microsoft Teams that were recorded with Fathom.
+
+    Fathom has a rate limit of 60 API calls per minute. To avoid hitting this,
+    we add a small delay between API calls.
     """
 
     BASE_URL = "https://api.fathom.ai/external/v1"
+
+    # Fathom rate limit: 60 calls/minute. With 3 calls per meeting (list + transcript + summary),
+    # we need ~1.5 seconds between meetings to stay safely under the limit.
+    # We use 1.2 seconds delay between individual API calls to allow ~50 calls/min.
+    RATE_LIMIT_DELAY_SECONDS = 1.2
 
     @classmethod
     async def create(
@@ -77,15 +90,19 @@ class FathomSource(BaseSource):
         return instance
 
     @retry(
-        stop=stop_after_attempt(5),
+        stop=stop_after_attempt(10),
         retry=retry_if_rate_limit_or_timeout,
         wait=wait_rate_limit_with_backoff,
         reraise=True,
+        before_sleep=before_sleep_log(_logger, logging.WARNING),
     )
     async def _get_with_auth(
         self, client: httpx.AsyncClient, url: str, params: Optional[Dict] = None
     ) -> Dict:
-        """Make an authenticated GET request to the Fathom API."""
+        """Make an authenticated GET request to the Fathom API.
+
+        Includes proactive rate limiting to stay under Fathom's 60 calls/minute limit.
+        """
         access_token = await self.get_access_token()
         headers = {"Authorization": f"Bearer {access_token}"}
 
@@ -101,6 +118,11 @@ class FathomSource(BaseSource):
             response = await client.get(url, headers=headers, params=params)
 
         response.raise_for_status()
+
+        # Proactive rate limiting: sleep after each successful call to avoid hitting
+        # Fathom's 60 calls/minute limit
+        await asyncio.sleep(self.RATE_LIMIT_DELAY_SECONDS)
+
         return response.json()
 
     @staticmethod
