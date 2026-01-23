@@ -3,6 +3,7 @@
 from .crud_api_key import api_key
 from .crud_auth_provider import auth_provider
 from .crud_billing_period import billing_period
+from .crud_client import client
 from .crud_collection import collection
 from .crud_connection import connection
 from .crud_connection_init_session import connection_init_session
@@ -11,6 +12,7 @@ from .crud_embedding_model import embedding_model
 from .crud_entity import entity
 from .crud_entity_count import entity_count
 from .crud_entity_definition import entity_definition
+from .crud_identity_match import identity_cluster, identity_match
 from .crud_integration_credential import integration_credential
 from .crud_organization import organization
 from .crud_organization_billing import organization_billing
@@ -31,6 +33,7 @@ __all__ = [
     "api_key",
     "auth_provider",
     "billing_period",
+    "client",
     "collection",
     "connection_init_session",
     "connection",
@@ -39,6 +42,8 @@ __all__ = [
     "entity",
     "entity_count",
     "entity_definition",
+    "identity_cluster",
+    "identity_match",
     "integration_credential",
     "organization",
     "organization_billing",

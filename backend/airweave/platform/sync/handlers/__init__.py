@@ -12,6 +12,7 @@ Entity Handlers:
 - DestinationHandler: Generic handler using processor strategy pattern
 - ArfHandler: Raw entity storage for audit/replay (ARF = Airweave Raw Format)
 - EntityPostgresHandler: Entity metadata persistence (runs last)
+- IdentityMatchingHandler: Cross-source identity matching (runs after postgres)
 
 Architecture:
     All handlers implement ActionHandler[T, B] with their specific types.
@@ -23,6 +24,7 @@ Architecture:
 from .arf import ArfHandler
 from .destination import DestinationHandler
 from .entity_postgres import EntityPostgresHandler
+from .identity_matching import IdentityMatchingHandler
 
 # Protocol and type aliases
 from .protocol import EntityActionHandler
@@ -34,4 +36,5 @@ __all__ = [
     "ArfHandler",
     "DestinationHandler",
     "EntityPostgresHandler",
+    "IdentityMatchingHandler",
 ]

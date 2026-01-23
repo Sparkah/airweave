@@ -21,6 +21,13 @@ from .billing_period import (
     BillingPeriodWithUsage,
     BillingTransition,
 )
+from .client import (
+    Client,
+    ClientCreate,
+    ClientUpdate,
+    ClientWithSources,
+    ClientWithStats,
+)
 from .collection import (
     Collection,
     CollectionCreate,
@@ -49,6 +56,22 @@ from .entity_definition import (
     EntityDefinitionCreate,
     EntityDefinitionUpdate,
     EntityType,
+)
+from .identity_match import (
+    ClusterMergeRequest,
+    IdentityCluster,
+    IdentityClusterCreate,
+    IdentityClusterUpdate,
+    IdentityClusterWithMatches,
+    IdentityMatch,
+    IdentityMatchCreate,
+    IdentityMatchWithSource,
+    IdentitySearchRequest,
+    IdentitySearchResult,
+    MatchMethod,
+    MatchStatus,
+    MatchSuggestion,
+    PendingMatchReview,
 )
 from .integration_credential import (
     IntegrationCredential,

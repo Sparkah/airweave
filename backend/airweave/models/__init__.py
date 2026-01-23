@@ -3,6 +3,7 @@
 from .api_key import APIKey
 from .auth_provider import AuthProvider
 from .billing_period import BillingPeriod
+from .client import Client
 from .collection import Collection
 from .connection import Connection
 from .connection_init_session import ConnectionInitSession
@@ -13,6 +14,7 @@ from .entity_count import EntityCount
 from .entity_definition import EntityDefinition
 from .entity_relation import EntityRelation
 from .feature_flag import FeatureFlag
+from .identity_match import IdentityCluster, IdentityMatch, MatchMethod, MatchStatus
 from .integration_credential import IntegrationCredential
 from .organization import Organization
 from .organization_billing import OrganizationBilling
@@ -35,6 +37,7 @@ __all__ = [
     "APIKey",
     "AuthProvider",
     "BillingPeriod",
+    "Client",
     "Collection",
     "Entity",
     "EntityCount",
@@ -45,6 +48,10 @@ __all__ = [
     "EntityDefinition",
     "EntityRelation",
     "FeatureFlag",
+    "IdentityCluster",
+    "IdentityMatch",
+    "MatchMethod",
+    "MatchStatus",
     "IntegrationCredential",
     "Organization",
     "OrganizationBilling",

@@ -6,6 +6,7 @@ from airweave.api.v1.endpoints import (
     api_keys,
     auth_providers,
     billing,
+    clients,
     collections,
     connections,
     cursor_dev,
@@ -15,6 +16,7 @@ from airweave.api.v1.endpoints import (
     entity_counts,
     file_retrieval,
     health,
+    identities,
     organizations,
     s3,
     search,
@@ -58,6 +60,8 @@ api_router.include_router(transformers.router, prefix="/transformers", tags=["tr
 api_router.include_router(file_retrieval.router, prefix="/files", tags=["files"])
 api_router.include_router(s3.router, prefix="/s3", tags=["s3"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_router.include_router(clients.router, prefix="/clients", tags=["clients"])
+api_router.include_router(identities.router, prefix="/identities", tags=["identities"])
 
 # Only include cursor development endpoints if LOCAL_CURSOR_DEVELOPMENT is enabled
 if settings.LOCAL_CURSOR_DEVELOPMENT:

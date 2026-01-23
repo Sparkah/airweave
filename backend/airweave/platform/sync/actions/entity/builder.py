@@ -9,6 +9,7 @@ from airweave.platform.sync.config import SyncExecutionConfig
 from airweave.platform.sync.handlers.arf import ArfHandler
 from airweave.platform.sync.handlers.destination import DestinationHandler
 from airweave.platform.sync.handlers.entity_postgres import EntityPostgresHandler
+from airweave.platform.sync.handlers.identity_matching import IdentityMatchingHandler
 from airweave.platform.sync.handlers.protocol import EntityActionHandler
 
 
@@ -63,12 +64,14 @@ class EntityDispatcherBuilder:
         enable_vector = execution_config.enable_vector_handlers if execution_config else True
         enable_arf = execution_config.enable_raw_data_handler if execution_config else True
         enable_postgres = execution_config.enable_postgres_handler if execution_config else True
+        enable_identity = execution_config.enable_identity_matching if execution_config else True
 
         handlers: List[EntityActionHandler] = []
 
         cls._add_destination_handler(handlers, destinations, enable_vector, logger)
         cls._add_arf_handler(handlers, enable_arf, logger)
         cls._add_postgres_handler(handlers, enable_postgres, logger)
+        cls._add_identity_matching_handler(handlers, enable_identity, logger)
 
         if not handlers and logger:
             logger.warning("No handlers created - sync will fetch entities but not persist them")
@@ -130,3 +133,25 @@ class EntityDispatcherBuilder:
                 logger.debug("Added EntityPostgresHandler")
         elif logger:
             logger.info("Skipping EntityPostgresHandler (disabled by execution_config)")
+
+    @classmethod
+    def _add_identity_matching_handler(
+        cls,
+        handlers: List[EntityActionHandler],
+        enabled: bool,
+        logger: Optional[ContextualLogger],
+    ) -> None:
+        """Add identity matching handler if enabled.
+
+        This handler processes entities for cross-source identity matching,
+        creating identity clusters and matches for entities that represent
+        people/identities.
+
+        Identity matching is non-blocking - errors won't fail the sync.
+        """
+        if enabled:
+            handlers.append(IdentityMatchingHandler())
+            if logger:
+                logger.debug("Added IdentityMatchingHandler")
+        elif logger:
+            logger.info("Skipping IdentityMatchingHandler (disabled by execution_config)")

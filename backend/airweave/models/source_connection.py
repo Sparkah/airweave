@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 from airweave.models._base import OrganizationBase, UserMixin
 
 if TYPE_CHECKING:
+    from airweave.models.client import Client
     from airweave.models.collection import Collection
     from airweave.models.connection import Connection
     from airweave.models.connection_init_session import ConnectionInitSession
@@ -53,6 +54,11 @@ class SourceConnection(OrganizationBase, UserMixin):
         ForeignKey("connection_init_session.id", ondelete="SET NULL"), nullable=True
     )
 
+    # Client association for multi-tenant client management
+    client_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey("client.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
     # Status is now ephemeral - removed from database model
     is_authenticated: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
@@ -87,6 +93,13 @@ class SourceConnection(OrganizationBase, UserMixin):
         foreign_keys=[readable_auth_provider_id],
         primaryjoin="SourceConnection.readable_auth_provider_id==Connection.readable_id",
         viewonly=True,
+        lazy="noload",
+    )
+
+    # Relationship to client
+    client: Mapped[Optional["Client"]] = relationship(
+        "Client",
+        back_populates="source_connections",
         lazy="noload",
     )
 
