@@ -44,6 +44,21 @@ class NotFoundException(AirweaveException):
         super().__init__(self.message)
 
 
+class ValidationException(AirweaveException):
+    """Exception raised when validation fails."""
+
+    def __init__(self, message: Optional[str] = "Validation failed"):
+        """Create a new ValidationException instance.
+
+        Args:
+        ----
+            message (str, optional): The error message. Has default message.
+
+        """
+        self.message = message
+        super().__init__(self.message)
+
+
 class ImmutableFieldError(AirweaveException):
     """Exception raised for attempts to modify immutable fields in a database model."""
 
