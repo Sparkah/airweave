@@ -1,11 +1,14 @@
 """Pydantic schemas for Client management."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 import re
+
+if TYPE_CHECKING:
+    from airweave.schemas.source_connection import SourceConnectionListItem
 
 
 class ClientBase(BaseModel):
@@ -102,8 +105,6 @@ class ClientWithStats(Client):
 
 class ClientWithSources(Client):
     """Client response with source connections."""
-
-    from airweave.schemas.source_connection import SourceConnectionListItem
 
     source_connections: List["SourceConnectionListItem"] = Field(
         default_factory=list, description="Source connections assigned to this client"
