@@ -1,14 +1,11 @@
 """Pydantic schemas for Client management."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 import re
-
-if TYPE_CHECKING:
-    from airweave.schemas.source_connection import SourceConnectionListItem
 
 
 class ClientBase(BaseModel):
@@ -111,5 +108,7 @@ class ClientWithSources(Client):
     )
 
 
-# Rebuild models for forward references
+# Rebuild models for forward references - import at runtime to resolve forward ref
+from airweave.schemas.source_connection import SourceConnectionListItem  # noqa: E402
+
 ClientWithSources.model_rebuild()
